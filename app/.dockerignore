@@ -1,0 +1,6 @@
+
+__pycache__/
+
+# .env.dev
+.env.template
+Dockerfile

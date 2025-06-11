@@ -1,0 +1,40 @@
+services:
+  api_weather:
+    build: ./app
+    image: api:1.0.0
+    container_name: api_weather
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - 127.0.0.1:8000:8000
+    restart: unless-stopped #no, always, on-failure: 5, unless-stopped
+    env_file:
+      - ./app/.env.dev
+    depends_on:
+      - db_weather
+
+  db_weather:
+    image: postgres:16-bookworm
+    container_name: db_weather
+    volumes:
+      - data:/var/lib/postgresql/data/
+    restart: unless-stopped #no, always, on-failure: 5, unless-stopped
+    environment:
+      - POSTGRES_DB='same as in .env file'
+      - POSTGRES_USER='same as in .env file'
+      - POSTGRES_PASSWORD='same as in .env file'
+
+  redis_weather:
+    image: redis:alpine
+    environment:
+      REDIS_MAXMEMORY: 256mb
+      REDIS_MAXMEMORY_POLICY: allkeys-lru
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    restart: always #no, always, on-failure: 5, unless-stopped
+
+
+volumes:
+  data:
+  redis_data:

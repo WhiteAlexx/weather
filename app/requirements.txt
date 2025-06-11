@@ -1,0 +1,6 @@
+django==4.2.22
+djangorestframework
+psycopg2-binary
+requests
+redis
+django-redis
