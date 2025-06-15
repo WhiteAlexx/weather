@@ -1,5 +1,4 @@
 from datetime import datetime
-import time
 from django.db import IntegrityError
 import requests
 
@@ -124,7 +123,6 @@ class ForecastView(APIView):
         date = serializer.validated_data['date']
 
         try:
-            time.sleep(5)
             instance, created = WeatherData.objects.update_or_create(
                 city=city,
                 date=date,
