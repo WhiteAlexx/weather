@@ -13,3 +13,11 @@ class WeatherData(models.Model):
     date = models.CharField(max_length=10, blank=False)
     min_temperature = models.DecimalField(max_digits=3, decimal_places=1, blank=False)
     max_temperature = models.DecimalField(max_digits=3, decimal_places=1, blank=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['city', 'date'],
+                name='unique_citty_date'
+            )
+        ]

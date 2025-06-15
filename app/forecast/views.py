@@ -1,4 +1,6 @@
 from datetime import datetime
+import time
+from django.db import IntegrityError
 import requests
 
 from rest_framework.views import APIView
@@ -115,32 +117,36 @@ class ForecastView(APIView):
         Кэш переписывается при переопределении
         '''
 
-        query_serializer = CreateWeatherSerializer(data=request.data)
-        query_serializer.is_valid(raise_exception=True)
+        serializer = CreateWeatherSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        city = query_serializer.validated_data['city']
-        date = query_serializer.validated_data['date']
+        city = serializer.validated_data['city']
+        date = serializer.validated_data['date']
 
         try:
-            # Поиск существующей записи
-            instance = WeatherData.objects.get(city=city, date=date)
-            serializer = CreateWeatherSerializer(instance, data=request.data)
-            message = f"Переопределение прогноза на {date} для города {city} успешно завершено"
-            success_status = 200
-        except WeatherData.DoesNotExist:
-            # Создание новой записи
-            serializer = CreateWeatherSerializer(data=request.data)
-            message = f"Создание прогноза на {date} для города {city} успешно завершено"
-            success_status = 201
-
-        if serializer.is_valid():
-            city_n_date_cache_key = f"city_n_date_{city}_{date}"
-            cache.set(city_n_date_cache_key, serializer.validated_data, timeout=10*24*60*60)
-            serializer.save()
-            return Response({
-                'message': message,
-                'data': serializer.data},
-                status=success_status
+            time.sleep(5)
+            instance, created = WeatherData.objects.update_or_create(
+                city=city,
+                date=date,
+                defaults=serializer.validated_data
+            )
+        except IntegrityError:
+            return Response(
+                {'conflict': 'Не удалось создать запись, попробуйте позже'},
+                status=409
             )
 
-        return Response(serializer.errors, status=400)
+        city_n_date_cache_key = f"city_n_date_{city}_{date}"
+        cache.set(city_n_date_cache_key, serializer.validated_data, timeout=10*24*60*60)
+
+        message = (
+            f"Создание прогноза на {date} для города {city} успешно завершено"
+            if created else
+            f"Переопределение прогноза на {date} для города {city} успешно завершено"
+        )
+
+        return Response({
+            'message': message,
+            'data': serializer.data},
+            status=201 if created else 200
+        )
